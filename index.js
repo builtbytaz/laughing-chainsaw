@@ -1,5 +1,5 @@
 // Import necessary modules and initialize environment variables
-const { Client, GatewayIntentBits, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, ChannelType, ActivityType } = require('discord.js');
 require('dotenv').config();
 const BOT_TOKEN = process.env.token;
 const PREFIX = process.env.prefix;
@@ -20,12 +20,13 @@ let isProcessingQueue = false;
 
 // Log in confirmation
 client.once('ready', () => {
+    client.user.setPresence({ activities: [{ name: 'Scrambling Discord(s) with fools.', type: ActivityType.Playing }] });
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
 // Listen for messages to handle commands
 client.on('messageCreate', async message => {
-
+    if (message.author.bot) return;
 
     const args = message.content.slice(PREFIX.length).trim().split(/\s+/);
     const command = args.shift().toLowerCase();
@@ -40,8 +41,15 @@ function delay(duration) {
     return new Promise(resolve => setTimeout(resolve, duration));
 }
 
-// Queue operations to manage execution pace
+// Queue operations to manage execution pace, checking for conflicting operations
 function queueOperation(command, message) {
+    // Check for a conflicting operation
+    if (operationQueue.some(op => op.command === command)) {
+        console.log(`A ${command} operation is already queued.`);
+        message.reply(`A ${command} operation is already in progress or queued.`);
+        return;
+    }
+
     operationQueue.push({ command, message });
     if (!isProcessingQueue) {
         processQueue();
